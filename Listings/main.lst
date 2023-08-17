@@ -1,0 +1,376 @@
+C51 COMPILER V9.60.0.0   MAIN                                                              04/12/2021 13:51:43 PAGE 1   
+
+
+C51 COMPILER V9.60.0.0, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN .\Objects\main.obj
+COMPILER INVOKED BY: D:\Keil_v5\C51\BIN\C51.EXE D:\Tetris\main.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\Lis
+                    -tings\main.lst) TABS(2) OBJECT(.\Objects\main.obj)
+
+line level    source
+
+   1          #include <at89c5131.h>
+   2          #include "lcd.h"    //Header file with LCD interfacing functions
+   3          #include "serial.c" //C file with UART interfacing functions
+   4          
+   5          //Initializing the global variables
+   6          unsigned int high_score=0;
+   7          int block=0;
+   8          int angle=0;
+   9          int a=192;
+  10          int b=128;
+  11          int xp=15;
+  12          int yp=0;
+  13          int test=0;
+  14          unsigned int score=0;
+  15          int filled_0=-1;
+  16          int filled_1=-1;
+  17          int temp=0;
+  18          int temp1=0;
+  19          int lfsr=10;
+  20          unsigned char sc;
+  21          
+  22          void main(void);
+  23          bit game_over(void);
+  24          void lfsr_generate(void);
+  25          void up(void);
+  26          void down(void);
+  27          void rotate(void);
+  28          void new_block(void);
+  29          void print_lcd(void);
+  30          
+  31          //Checking if the lcd is filled
+  32          bit game_over(void)
+  33          {
+  34   1          if(filled_0>13||filled_1>13)
+  35   1          {
+  36   2              return 1;
+  37   2          }
+  38   1          return 0;
+  39   1      }
+  40              
+  41          //Generating values for angle and block
+  42          void lfsr_generate(void)
+  43          {  
+  44   1          temp = (lfsr&0x8);
+  45   1          temp1 = ((lfsr&0x1)<<3);
+  46   1          lfsr = (lfsr>>1);
+  47   1          lfsr = lfsr+(temp^temp1);
+  48   1      }
+  49          
+  50          //move the block up if possible
+  51          void up(void)
+  52          {
+  53   1          if(yp%2 == 0)
+  54   1              yp = yp + 1;
+C51 COMPILER V9.60.0.0   MAIN                                                              04/12/2021 13:51:43 PAGE 2   
+
+  55   1          test=1;
+  56   1          print_lcd();
+  57   1      }
+  58          
+  59          //move the block down if possible
+  60          void down(void)
+  61          {
+  62   1          if(yp%2 == 1)
+  63   1              yp = yp - 1;
+  64   1          test=1;
+  65   1          print_lcd();
+  66   1      }
+  67          
+  68          //rotate the block if necessary
+  69          void rotate(void)
+  70          {
+  71   1        if (block != 0)
+  72   1        {
+  73   2          if(yp%2 == 0)
+  74   2              yp = yp + 1;
+  75   2          test=1;
+  76   2          angle = angle + 1;
+  77   2          
+  78   2        }
+  79   1      } 
+  80          
+  81          //generating new block with lfsr_generate()
+  82          void new_block(void)
+  83          {
+  84   1          lfsr_generate();
+  85   1          block = lfsr%3;
+  86   1          angle = lfsr%2;
+  87   1          xp = 15;
+  88   1          yp = lfsr%2;
+  89   1      }
+  90          
+  91          //printing to the lcd
+  92          void print_lcd(void)
+  93          {
+  94   1        //checking if game is over and displaying score
+  95   1        if (game_over())
+  96   1        {
+  97   2              if(score>=high_score)
+  98   2                  high_score = score;
+  99   2              lcd_cmd(0x01);   
+ 100   2              msdelay(4);
+ 101   2              lcd_cmd(0x80);
+ 102   2              msdelay(4);
+ 103   2              lcd_write_string("Score:");
+ 104   2              msdelay(4);
+ 105   2              int_to_string(score, &sc);
+ 106   2              lcd_write_string(&sc);
+ 107   2              msdelay(4);
+ 108   2              lcd_cmd(0xC0);
+ 109   2              msdelay(4);
+ 110   2              lcd_write_string("High_Score:");
+ 111   2              msdelay(4);
+ 112   2              int_to_string(high_score, &sc);
+ 113   2              lcd_write_string(&sc);
+ 114   2              msdelay(3000);
+ 115   2              lcd_cmd(0x01);
+ 116   2              filled_0 = -1;
+C51 COMPILER V9.60.0.0   MAIN                                                              04/12/2021 13:51:43 PAGE 3   
+
+ 117   2              filled_1 = -1;
+ 118   2              xp = 15;
+ 119   2              score = 0;
+ 120   2              new_block();
+ 121   2        }
+ 122   1        //If the next space is filled
+ 123   1        else if ((xp == -1) || (block == 0 && yp == 0 && filled_0 == xp) || (block == 0 && yp== 1 && filled_1 == 
+             -xp) || (block == 1 && angle%2 == 0 && yp == 0 && filled_0 == xp) || (block == 1 && angle%2 == 1 &&(filled_0 == xp || fil
+             -led_1 == xp)) || (block == 2 && (angle % 4 == 0 || angle % 4 == 3) && (filled_0 == xp || filled_1 == xp)) || (block == 2
+             - && angle % 4 == 1 && (filled_1 == xp || filled_0 == xp + 1)) || (block == 2 && angle % 4 == 2 && (filled_1 == xp + 1 ||
+             - filled_0 == xp)))
+ 124   1        {
+ 125   2          if (block == 0)
+ 126   2          {
+ 127   3            if (yp == 0)
+ 128   3            {
+ 129   4              filled_0 = filled_0 + 1;
+ 130   4            }
+ 131   3            else 
+ 132   3            {
+ 133   4              filled_1 = filled_1 + 1;
+ 134   4            }
+ 135   3          }
+ 136   2          else if (block == 1)
+ 137   2          {
+ 138   3            if (angle%2 == 0)
+ 139   3            {
+ 140   4              if (yp == 0)
+ 141   4              {
+ 142   5                filled_0 = filled_0 + 2;
+ 143   5              }
+ 144   4              else 
+ 145   4              {
+ 146   5                filled_1 = filled_1 + 2;
+ 147   5              }
+ 148   4            }
+ 149   3            else
+ 150   3            {
+ 151   4              filled_0++;
+ 152   4              filled_1++;
+ 153   4              if (filled_0 > filled_1)
+ 154   4              {
+ 155   5                filled_1 = filled_0;
+ 156   5              }
+ 157   4              else
+ 158   4              {
+ 159   5                filled_0 = filled_1;
+ 160   5              }
+ 161   4              
+ 162   4            }
+ 163   3          }
+ 164   2          else
+ 165   2          {
+ 166   3            if (angle%4 == 0)
+ 167   3            {
+ 168   4              filled_0 = filled_0 + 1;
+ 169   4              filled_1 = filled_1 + 2;
+ 170   4            }
+ 171   3            else if (angle%4 == 1)
+ 172   3            {
+ 173   4              if (xp == filled_0)
+ 174   4              {
+C51 COMPILER V9.60.0.0   MAIN                                                              04/12/2021 13:51:43 PAGE 4   
+
+ 175   5                filled_0 = filled_0 + 1;
+ 176   5                filled_1 = filled_1 + 2;
+ 177   5              }
+ 178   4              else
+ 179   4              {
+ 180   5                filled_0 = filled_0 + 2;
+ 181   5                filled_1 = filled_1 + 2;
+ 182   5              }
+ 183   4            }
+ 184   3            else if (angle%4 == 2)
+ 185   3            {
+ 186   4              if (xp == filled_1)
+ 187   4              {
+ 188   5                filled_0 = filled_0 + 2;
+ 189   5                filled_1 = filled_1 + 1;
+ 190   5              }
+ 191   4              else
+ 192   4              {
+ 193   5                filled_0 = filled_0 + 2;
+ 194   5                filled_1 = filled_1 + 2;
+ 195   5              }
+ 196   4            }
+ 197   3            else
+ 198   3            {
+ 199   4              filled_0 = filled_0 + 2;
+ 200   4              filled_1 = filled_1 + 1;
+ 201   4            }
+ 202   3          }
+ 203   2          new_block();
+ 204   2        }
+ 205   1        //Clear the previous space of the block and print the new space
+ 206   1        else
+ 207   1        {
+ 208   2          lcd_cmd(a + xp + 1);
+ 209   2          msdelay(4);
+ 210   2          lcd_write_string("  ");
+ 211   2          msdelay(4);
+ 212   2          lcd_cmd(b + xp + 1);
+ 213   2          msdelay(4);
+ 214   2          lcd_write_string("  ");
+ 215   2          if(block == 0)
+ 216   2          {
+ 217   3            if (yp == 0)
+ 218   3            {
+ 219   4              lcd_cmd(a + xp);
+ 220   4              msdelay(4);
+ 221   4              lcd_write_string("*");
+ 222   4              msdelay(4);
+ 223   4            }
+ 224   3            else
+ 225   3            {
+ 226   4              lcd_cmd(b + xp);
+ 227   4              msdelay(4);
+ 228   4              lcd_write_string("*");
+ 229   4              msdelay(4);
+ 230   4            }
+ 231   3          }
+ 232   2          else if(block == 1)
+ 233   2          {
+ 234   3            if (angle%2 == 0)
+ 235   3            {
+ 236   4              if (yp == 0)
+C51 COMPILER V9.60.0.0   MAIN                                                              04/12/2021 13:51:43 PAGE 5   
+
+ 237   4              {
+ 238   5                lcd_cmd(a + xp);
+ 239   5                msdelay(4);
+ 240   5                lcd_write_string("**");
+ 241   5                msdelay(4);
+ 242   5              }
+ 243   4              else 
+ 244   4              {
+ 245   5                lcd_cmd(b + xp);
+ 246   5                msdelay(4);
+ 247   5                lcd_write_string("**");
+ 248   5                msdelay(4);
+ 249   5              }
+ 250   4            }
+ 251   3            else
+ 252   3            {
+ 253   4              lcd_cmd(a + xp);
+ 254   4              msdelay(4);
+ 255   4              lcd_write_string("*");
+ 256   4              msdelay(4);
+ 257   4              lcd_cmd(b + xp);
+ 258   4              msdelay(4);
+ 259   4              lcd_write_string("*");
+ 260   4              msdelay(4);
+ 261   4            }
+ 262   3          }
+ 263   2          else
+ 264   2          {
+ 265   3            if (angle%4 == 0)
+ 266   3            {
+ 267   4              lcd_cmd(a + xp);
+ 268   4              msdelay(4);
+ 269   4              lcd_write_string("*");
+ 270   4              msdelay(4);
+ 271   4              lcd_cmd(b + xp);
+ 272   4              msdelay(4);
+ 273   4              lcd_write_string("**");
+ 274   4              msdelay(4);
+ 275   4            }
+ 276   3            else if (angle%4 == 1)
+ 277   3            {
+ 278   4              lcd_cmd(a + xp);
+ 279   4              msdelay(4);
+ 280   4              lcd_write_string(" *");
+ 281   4              msdelay(4);
+ 282   4              lcd_cmd(b + xp);
+ 283   4              msdelay(4);
+ 284   4              lcd_write_string("**");
+ 285   4              msdelay(4);
+ 286   4            }
+ 287   3            else
+ 288   3            {
+ 289   4              lcd_cmd(a + xp);
+ 290   4              msdelay(4);
+ 291   4              lcd_write_string("**");
+ 292   4              msdelay(4);
+ 293   4              lcd_cmd(b + xp);
+ 294   4              msdelay(4);
+ 295   4              lcd_write_string(" *");
+ 296   4              msdelay(4);
+ 297   4            }
+ 298   3          }
+C51 COMPILER V9.60.0.0   MAIN                                                              04/12/2021 13:51:43 PAGE 6   
+
+ 299   2        }
+ 300   1      }       
+ 301          
+ 302          void main(void)
+ 303          {
+ 304   1        unsigned char ch;
+ 305   1        //Call initialization functions
+ 306   1        lcd_init();
+ 307   1        uart_init();
+ 308   1      
+ 309   1        while(1)
+ 310   1        {
+ 311   2            ch=' ';
+ 312   2            print_lcd();
+ 313   2            msdelay(1000);
+ 314   2            score++;
+ 315   2            xp--;
+ 316   2            if(rx_complete==1)
+ 317   2            ch = receive_char();
+ 318   2            switch(ch)
+ 319   2            {
+ 320   3              case 'q':up();
+ 321   3                       
+ 322   3                       break;
+ 323   3              
+ 324   3              case 'a':down();
+ 325   3                       
+ 326   3                       break;
+ 327   3              
+ 328   3              case 'r':rotate();
+ 329   3                      break;
+ 330   3                    
+ 331   3              default:break;
+ 332   3                       
+ 333   3              
+ 334   3            }
+ 335   2            msdelay(4);   
+ 336   2        }     
+ 337   1      
+ 338   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =   1801    ----
+   CONSTANT SIZE    =     30    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =     29      12
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =      2    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)
